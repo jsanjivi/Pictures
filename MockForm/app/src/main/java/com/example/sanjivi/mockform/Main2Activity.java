@@ -1,5 +1,6 @@
 package com.example.sanjivi.mockform;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -31,7 +32,6 @@ public class Main2Activity extends AppCompatActivity {
     }
     }
     public void onClick(View v)
-    { Intent intent=new Intent(Main2Activity.this,MainActivity.class);
-        startActivity(intent);
+    {finish();
     }
 }
