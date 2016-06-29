@@ -1,5 +1,7 @@
 package com.example.sanjivi.pictures;
 
+
+import android.media.MediaPlayer;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -11,29 +13,29 @@ import android.os.Message;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
-    String[] tracks={"Footballers","Cricketers"};
+    String[] tracks={"Levels","Tremor","Hey Jude"};
     int i,flag=0;
     TextView timerTextView;
     long startTime = 0;
-    long startTime1 = 0;
-    long startTime2 = 0;
-    long remainingTime=0;
-    //runs without a timer by reposting this handler at the end of the runnable
-    Handler timerHandler = new Handler();
-    Runnable timerRunnable = new Runnable() {
+    final Handler h = new Handler(new Handler.Callback() {
 
         @Override
-        public void run() {
+        public boolean handleMessage(Message msg) {
             long millis = System.currentTimeMillis() - startTime;
             int seconds = (int) (millis / 1000);
-
-
+            seconds     = seconds % 60;
+            timerTextView = (TextView) findViewById(R.id.textView);
             timerTextView.setText(String.format("%02d", seconds));
-
-            timerHandler.postDelayed(this, 1000);
+            return false;
         }
-    };
+    });
+
+
+
     Handler handler=new Handler(){
         @Override
         public void handleMessage(Message msg) {
@@ -48,20 +50,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             imageView.setImageResource(R.drawable.ronaldo);
         }
     };
-    Handler handler1=new Handler(){
+    class firstTask extends TimerTask {
+
         @Override
-        public void handleMessage(Message msg) {
-            ImageView imageView = (ImageView) findViewById(R.id.imageView);
-            if(i==1)
-                imageView.setImageResource(R.drawable.kohli);
-            else if(i==2)
-                imageView.setImageResource(R.drawable.starc);
-            else if(i==3)
-                imageView.setImageResource(R.drawable.abd);
-            else if(i==4)
-                imageView.setImageResource(R.drawable.warner);
+        public void run() {
+            h.sendEmptyMessage(0);
+
         }
     };
+
 
 
     @Override
@@ -76,100 +73,70 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         spinner.setOnItemSelectedListener(this);
         timerTextView = (TextView) findViewById(R.id.textView);
         timerTextView.setText("00");
+
     }
-    int j;
+    int j=1;
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
         String item=parent.getItemAtPosition(position).toString(); //on selecting a spinner item
         j=position;
-        ImageView imageView = (ImageView) findViewById(R.id.imageView);
-        if(j==0)
-            imageView.setImageResource(R.drawable.zlatan);
-        else if(j==1)
-            imageView.setImageResource(R.drawable.kohli);
-        timerHandler.removeCallbacks(timerRunnable);
-        startTime1 = System.currentTimeMillis();
+        flag=0;
+
     }
     public void onNothingSelected(AdapterView<?> arg0)
     {// TODO Auto-generated method stub
     }
-    Object mPauseLock=new Object();
-    Boolean mPaused=false;
+
+    MediaPlayer mPlayer=new MediaPlayer();
+    Timer timer;
     public void onClick(View v) {
+
         if (v.getId() == R.id.slideshow)
-        {startTime = System.currentTimeMillis();
-            timerHandler.postDelayed(timerRunnable, 0);
-            remainingTime=0;
+        {i=1;
+            startTime = System.currentTimeMillis();
+            timer = new Timer();
+            timer.schedule(new firstTask(), 0,500);
             Runnable r1 = new Runnable() {
                 @Override
                 public void run() {
-                 synchronized (mPauseLock){
-                     i=1;
-                     mPaused=false;
 
-                   }
                     while (i <= 4) {
-                         synchronized (mPauseLock)
-                                {if(flag==1)
-                                {  try {
-                                        Thread.sleep(remainingTime);
-                                    } catch (InterruptedException e) {
-                                        Thread.currentThread().interrupt();
-                                    }
-                                    flag=0;
-                                }
-                            }
-                        if(j==0)
                         handler.sendEmptyMessage(0);
-                        else if(j==1)
-                        handler1.sendEmptyMessage(0);
+                       if(i==4){
+                           timer.cancel();
+                           timer.purge();
+                       }
                         try {
+
                             Thread.sleep(3000);
                         } catch (InterruptedException e) {
                             Thread.currentThread().interrupt();
                         }
                         i++;
-                        synchronized (mPauseLock) {//synchronized is used when two or more threads access the same variables
 
-                            while (mPaused) {
-                                try {
-                                    mPauseLock.wait();
-                                } catch (InterruptedException e) {
-                                }
-                            }
-                        }
                     }
                 }
             };
             Thread delay = new Thread(r1);
             delay.start();
 
-
-
     }
-        else if(v.getId()==R.id.play){
-            startTime2=System.currentTimeMillis();
-            startTime=startTime+startTime2-startTime1;
-            timerHandler.postDelayed(timerRunnable, 0);
-            onResumeThread();
-        }
-        else if(v.getId()==R.id.stop){
-            timerHandler.removeCallbacks(timerRunnable);
-            startTime1 = System.currentTimeMillis();
-            onPauseThread();
-                    }
+
+           else if (v.getId() == R.id.play) {
+            if(flag==0) {flag=1;
+                if (j == 0)
+                    mPlayer = MediaPlayer.create(this, R.raw.levels);
+                else if (j == 1)
+                    mPlayer = MediaPlayer.create(this, R.raw.tremor);
+                else if (j == 2)
+                    mPlayer = MediaPlayer.create(this, R.raw.heyjude);
+            }
+                mPlayer.start();
+
+            }
+            else if (v.getId() == R.id.stop) {
+
+                mPlayer.pause();
+            }
 }
 
-    public void onPauseThread(){
-    synchronized (mPauseLock){
-        mPaused=true;
-        remainingTime=3000-startTime1%3000;
-        flag=1;
-    }
-    }
-    public void onResumeThread(){
-        synchronized (mPauseLock){
-            mPaused=false;
-            mPauseLock.notifyAll();//wakes all the threads that are waiting on this object's monitor
-        }
-    }
 }
